@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "AIGMA PTE",
+    "slug": "aigma-pte",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#F4F7FC" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.aigmapte.mobile" },
+    "android": { "package": "com.aigmapte.mobile", "adaptiveIcon": { "backgroundColor": "#123A70" } },
+    "web": { "bundler": "metro" },
+    "plugins": []
+  }
+}
