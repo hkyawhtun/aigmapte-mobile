@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View, useWindowDimensions,
@@ -9,6 +9,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { colors, shadow } from './src/theme';
 import { mockTests, plans, Skill, skills, taskGroups } from './src/data';
+import { AuthProvider, useAuth } from './src/features/auth/AuthContext';
+import { AuthFlow } from './src/features/auth/AuthFlow';
+import { ExamSetup } from './src/features/auth/screens/ExamSetup';
+import { Splash } from './src/features/auth/screens/Splash';
 
 type Tab = 'Home' | 'Practice' | 'Mock' | 'Progress' | 'Profile';
 type Screen = { kind: 'tabs' } | { kind: 'task'; skill: Skill; title: string } | { kind: 'plans' };
@@ -21,48 +25,6 @@ function Brand({ light = false }: { light?: boolean }) {
     <View style={[styles.brandMark, light && { backgroundColor: colors.white }]}><Text style={styles.brandA}>A</Text></View>
     <View><Text style={[styles.brand, light && { color: colors.white }]}>AIGMA</Text><Text style={[styles.brandSub, light && { color: '#CDE5FF' }]}>PTE  AI</Text></View>
   </View>;
-}
-
-function Login({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<'welcome' | 'login'>('welcome');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  if (mode === 'welcome') return <SafeAreaView style={styles.welcome}>
-    <StatusBar style="light" />
-    <LinearGradient colors={['#0A2B58', '#176BCE', '#38A9F4']} style={StyleSheet.absoluteFill} />
-    <View style={styles.welcomeTop}><Brand light /></View>
-    <View style={styles.heroArt}>
-      <View style={styles.heroRing}><Icon name="mic" size={48} color={colors.blue} /></View>
-      <View style={[styles.spark, { left: 30, top: 25 }]} /><View style={[styles.spark, { right: 28, bottom: 40 }]} />
-      <View style={styles.scoreBubble}><Text style={styles.scoreBubbleText}>79+</Text></View>
-    </View>
-    <View style={styles.welcomeCopy}>
-      <Text style={styles.eyebrowLight}>YOUR SCORE, WITHIN REACH</Text>
-      <Text style={styles.welcomeTitle}>Practise smarter.\nSpeak with confidence.</Text>
-      <Text style={styles.welcomeBody}>Personalised PTE practice, realistic mock tests, and clear feedback—wherever you study.</Text>
-      <Pressable style={styles.primaryLight} onPress={() => setMode('login')}><Text style={styles.primaryLightText}>Get started</Text><Icon name="arrow-forward" color={colors.blue} /></Pressable>
-      <Pressable onPress={() => setMode('login')}><Text style={styles.existing}>I already have an account</Text></Pressable>
-    </View>
-  </SafeAreaView>;
-
-  return <SafeAreaView style={styles.loginPage}>
-    <StatusBar style="dark" />
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.loginContent}>
-        <Pressable style={styles.backCircle} onPress={() => setMode('welcome')}><Icon name="arrow-back" /></Pressable>
-        <Brand />
-        <Text style={styles.loginTitle}>Welcome back</Text><Text style={styles.loginSub}>Sign in to continue your PTE journey.</Text>
-        <Text style={styles.label}>Email address</Text>
-        <View style={styles.inputWrap}><Icon name="mail-outline" color={colors.muted} /><TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" style={styles.input} /></View>
-        <View style={styles.labelRow}><Text style={styles.label}>Password</Text><Text style={styles.link}>Forgot password?</Text></View>
-        <View style={styles.inputWrap}><Icon name="lock-closed-outline" color={colors.muted} /><TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Enter your password" style={styles.input} /></View>
-        <Pressable style={styles.primary} onPress={onDone}><Text style={styles.primaryText}>Sign in</Text></Pressable>
-        <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>or continue with</Text><View style={styles.orLine} /></View>
-        <Pressable style={styles.google} onPress={onDone}><Text style={styles.googleG}>G</Text><Text style={styles.googleText}>Google</Text></Pressable>
-        <Text style={styles.signup}>New to AIGMA? <Text style={styles.link}>Create an account</Text></Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  </SafeAreaView>;
 }
 
 function Header({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
@@ -145,8 +107,9 @@ function Progress() {
 }
 
 function Profile({ goPlans, logout }: { goPlans:()=>void; logout:()=>void }) {
+  const { user, profile } = useAuth(); const initials=(user?.name??'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pagePad}><Header title="Profile" />
-    <View style={styles.profileHero}><View style={styles.profileAvatar}><Text style={styles.profileAvatarText}>TT</Text></View><Text style={styles.profileName}>Tom T</Text><Text style={styles.profileEmail}>tom@example.com</Text><View style={styles.examBadge}><Text style={styles.examBadgeText}>PTE Academic · Target 79</Text></View></View>
+    <View style={styles.profileHero}><View style={styles.profileAvatar}><Text style={styles.profileAvatarText}>{initials}</Text></View><Text style={styles.profileName}>{user?.name}</Text><Text style={styles.profileEmail}>{user?.email}</Text><View style={styles.examBadge}><Text style={styles.examBadgeText}>{profile?.exam==='core'?'PTE Core':'PTE Academic'} · Target {profile?.target}</Text></View></View>
     <Pressable style={styles.planProfile} onPress={goPlans}><View><Text style={styles.planProfileLabel}>CURRENT PLAN</Text><Text style={styles.planProfileTitle}>Trial plan</Text><Text style={styles.planProfileSub}>3 mock test credits remaining</Text></View><View style={styles.upgradeButton}><Text style={styles.upgradeButtonText}>Upgrade</Text></View></Pressable>
     <Text style={styles.listLabel}>ACCOUNT</Text>{[['person-outline','Personal details'],['notifications-outline','Notifications'],['language-outline','Language & exam'],['card-outline','Payments & purchases']].map(x=><Pressable key={x[1]} style={styles.setting}><Icon name={x[0]} color={colors.navy}/><Text style={styles.settingText}>{x[1]}</Text><Icon name="chevron-forward" size={18} color={colors.muted}/></Pressable>)}
     <Text style={styles.listLabel}>SUPPORT</Text>{[['help-circle-outline','Help centre'],['chatbubble-ellipses-outline','Contact support'],['shield-checkmark-outline','Privacy & terms']].map(x=><Pressable key={x[1]} style={styles.setting}><Icon name={x[0]} color={colors.navy}/><Text style={styles.settingText}>{x[1]}</Text><Icon name="chevron-forward" size={18} color={colors.muted}/></Pressable>)}
@@ -171,7 +134,17 @@ function Main({ logout }: { logout:()=>void }) {
   return <SafeAreaView style={styles.screen} edges={['top','left','right']}><StatusBar style="dark"/><View style={{flex:1}}>{tab==='Home'?<Home goPractice={()=>setTab('Practice')} goPlans={()=>setScreen({kind:'plans'})}/>:tab==='Practice'?<Practice onTask={(skill,title)=>setScreen({kind:'task',skill,title})}/>:tab==='Mock'?<MockTests/>:tab==='Progress'?<Progress/>:<Profile goPlans={()=>setScreen({kind:'plans'})} logout={logout}/>}</View><BottomNav tab={tab} setTab={setTab}/></SafeAreaView>;
 }
 
-export default function App() { const [authed,setAuthed]=useState(false); return <SafeAreaProvider>{authed?<Main logout={()=>setAuthed(false)}/>:<Login onDone={()=>setAuthed(true)}/>}</SafeAreaProvider>; }
+function Root() {
+  const { ready, user, profile, signOut } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSplashDone(true), 1400); return () => clearTimeout(t); }, []);
+  if (!ready || !splashDone) return <Splash />;
+  if (!user) return <AuthFlow />;
+  if (!profile) return <ExamSetup />;
+  return <Main logout={signOut} />;
+}
+
+export default function App() { return <SafeAreaProvider><AuthProvider><Root /></AuthProvider></SafeAreaProvider>; }
 
 const styles = StyleSheet.create({
   screen:{flex:1,backgroundColor:colors.canvas}, pagePad:{padding:20,paddingBottom:32},
